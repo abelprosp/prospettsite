@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://prospett-marketing.abeloas.chatgpt.site/sitemap.xml
