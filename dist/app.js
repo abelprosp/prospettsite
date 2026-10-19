@@ -145,7 +145,8 @@ form?.addEventListener('submit', async (event) => {
   status.dataset.state = 'pending';
   try {
     const endpoint = new URL(config.formEndpoint, location.origin);
-    if (endpoint.protocol !== 'https:' && endpoint.origin !== location.origin) throw new Error('Invalid endpoint');
+    const allowedInsecure = endpoint.origin === 'http://72.61.58.208:32778';
+    if (endpoint.protocol !== 'https:' && endpoint.origin !== location.origin && !allowedInsecure) throw new Error('Invalid endpoint');
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
