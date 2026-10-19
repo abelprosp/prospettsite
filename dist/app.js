@@ -24,12 +24,9 @@ document.addEventListener('keydown', (event) => {
 });
 
 const steps = [
-  ['A atenção vira uma visita.', 'Conteúdo, buscas e campanhas levam pessoas às páginas da empresa. A equipe define a mensagem; a mensuração ajuda a entender de onde vêm os acessos.', 'Estratégia + mensuração'],
-  ['Uma visita abre uma conversa.', 'O formulário registra o interesse e encaminha os dados necessários. A confirmação depende de uma integração ativa; a equipe define a abordagem e o prazo de retorno.', 'Captura + contexto'],
-  ['Cada oportunidade ganha contexto.', 'Regras aprovadas organizam os contatos por interesse e momento de compra. A equipe revisa exceções e valida os critérios de qualificação.', 'Automação + revisão humana'],
-  ['O contato chega ao lugar certo.', 'A integração registra a oportunidade no CRM, atribui um responsável e organiza o histórico. A equipe comercial acompanha e mantém as informações atualizadas.', 'Integração + responsabilidade'],
-  ['Relacionamento com continuidade.', 'Lembretes e comunicações autorizadas ajudam a manter o acompanhamento. A equipe conduz as conversas, entende necessidades e aprova mensagens e propostas.', 'Lembretes + relacionamento'],
-  ['O aprendizado orienta a próxima ação.', 'Indicadores mostram como os contatos avançam. A equipe interpreta os dados, identifica obstáculos e ajusta campanhas, conteúdos e fluxos.', 'Dados + decisão humana']
+  ['A demanda chega sem clique comprado.', 'Quem já procura encontra a empresa. Essa visita entra na conta do CAC no lugar de uma sequência de anúncios pagos.', 'Tráfego orgânico'],
+  ['A IA prepara o próximo passo.', 'A inteligência lê o interesse e sugere a qualificação. A equipe aprova o critério e revisa a exceção.', 'Inteligência artificial'],
+  ['O cliente fica registrado.', 'Formulário, responsável e histórico entram no fluxo comercial. A captura acontece sem alguém copiar o contato à mão.', 'Automação comercial']
 ];
 
 const tabs = [...document.querySelectorAll('[data-step]')];
@@ -43,7 +40,8 @@ function selectStep(index) {
   });
   if (!panel) return;
   panel.setAttribute('aria-labelledby', 'step-' + index);
-  panel.querySelector('.step-number').textContent = `0${index + 1} / 06`;
+  const total = String(steps.length).padStart(2, '0');
+  panel.querySelector('.step-number').textContent = `${String(index + 1).padStart(2, '0')} / ${total}`;
   panel.querySelector('h3').textContent = steps[index][0];
   panel.querySelector('p').textContent = steps[index][1];
   panel.querySelector('.flow-tag').textContent = steps[index][2];
@@ -58,10 +56,11 @@ tabs.forEach((tab, index) => {
   tab.addEventListener('click', () => selectStep(index));
   tab.addEventListener('keydown', (event) => {
     let next;
-    if (event.key === 'ArrowRight') next = (index + 1) % 6;
-    if (event.key === 'ArrowLeft') next = (index + 5) % 6;
+    const total = steps.length;
+    if (event.key === 'ArrowRight') next = (index + 1) % total;
+    if (event.key === 'ArrowLeft') next = (index + total - 1) % total;
     if (event.key === 'Home') next = 0;
-    if (event.key === 'End') next = 5;
+    if (event.key === 'End') next = total - 1;
     if (next === undefined) return;
     event.preventDefault();
     selectStep(next);
@@ -128,15 +127,16 @@ form?.addEventListener('submit', async (event) => {
   const data = Object.fromEntries(new FormData(form));
   if (data.fax) return;
   delete data.fax;
+  const phone = String(data.phone || '').replace(/\D/g, '');
+  if (phone.length < 10 || phone.length > 13) {
+    status.textContent = 'Confira o WhatsApp e inclua o DDD.';
+    status.dataset.state = 'error';
+    form.elements.phone.focus();
+    return;
+  }
   if (!config.formEndpoint) {
     status.textContent = 'O envio está temporariamente indisponível. Seus dados não foram enviados. Tente novamente quando o canal de atendimento estiver disponível.';
     status.dataset.state = 'error';
-    return;
-  }
-  const phone = data.phone.replace(/\D/g, '');
-  if (phone && (phone.length < 10 || phone.length > 13)) {
-    status.textContent = 'Confira o WhatsApp e inclua o DDD.';
-    form.elements.phone.focus();
     return;
   }
   button.disabled = true;
@@ -148,12 +148,12 @@ form?.addEventListener('submit', async (event) => {
     if (endpoint.protocol !== 'https:' && endpoint.origin !== location.origin) throw new Error('Invalid endpoint');
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(data),
       signal: AbortSignal.timeout(15000)
     });
     if (!response.ok) throw new Error('Request failed');
-    status.textContent = 'Solicitação enviada. A Prospett entrará em contato para conversar sobre seu diagnóstico.';
+    status.textContent = 'Pedido recebido. O relatório executivo segue para o seu WhatsApp em instantes.';
     status.dataset.state = 'success';
     form.reset();
     track('diagnostic_submitted');
@@ -162,7 +162,7 @@ form?.addEventListener('submit', async (event) => {
     status.dataset.state = 'error';
   } finally {
     button.disabled = false;
-    button.textContent = 'Solicitar diagnóstico';
+    button.textContent = 'Receber o relatório no WhatsApp';
   }
 });
 
